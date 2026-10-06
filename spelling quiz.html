@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P6 English Spelling & Phonics Challenge</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@600;700;800&display=swap');
+        
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 50%, #fef3c7 100%);
+            min-height: 100vh;
+        }
+
+        .font-display {
+            font-family: 'Fredoka', cursive;
+        }
+
+        .tile-btn {
+            transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 4px 0 0 #2563eb;
+        }
+        .tile-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 0 #2563eb;
+        }
+
+        .blank-slot {
+            transition: all 0.2s ease;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .bounce-gentle {
+            animation: bounceGentle 2s infinite;
+        }
+
+        @keyframes bounceGentle {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+
+        .pop-in {
+            animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .shake {
+            animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center p-3 sm:p-6 min-h-screen">
+
+    <div class="w-full max-w-3xl bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl border-4 border-sky-300 p-4 sm:p-8 relative overflow-hidden">
+        
+        <!-- Top Bar Header / Progress -->
+        <div class="flex flex-wrap justify-between items-center gap-3 mb-6 bg-sky-100/80 p-3 sm:p-4 rounded-2xl border-2 border-sky-200">
+            <div class="flex items-center space-x-2">
+                <span class="bg-amber-400 text-amber-950 font-display text-lg sm:text-xl px-4 py-1.5 rounded-full font-bold shadow-md flex items-center gap-2">
+                    <i class="fa-solid fa-star text-amber-100"></i>
+                    Score: <span id="score">0</span>
+                </span>
+            </div>
+
+            <div class="flex items-center space-x-2">
+                <span id="questionProgress" class="text-sky-800 font-display font-bold text-base sm:text-lg bg-white px-4 py-1.5 rounded-full border border-sky-300 shadow-sm">
+                    Word 1 / 12
+                </span>
+            </div>
+        </div>
+
+        <div id="gameScreen" class="flex flex-col items-center">
+            
+            <!-- Category Tag -->
+            <div class="inline-block bg-indigo-100 text-indigo-700 font-bold px-4 py-1 rounded-full text-xs sm:text-sm mb-2 border border-indigo-200">
+                Primary 6 Vocabulary
+            </div>
+
+            <!-- English Context Box -->
+            <div class="w-full text-center bg-gradient-to-r from-teal-50 via-sky-50 to-indigo-50 border-2 border-sky-200 rounded-2xl p-4 sm:p-6 mb-6 shadow-inner relative">
+                <p class="text-gray-400 text-xs sm:text-sm font-semibold uppercase tracking-wider mb-1">English Definition & Example</p>
+                <div id="englishDef" class="text-base sm:text-xl font-extrabold text-sky-900 font-display tracking-wide mb-2">
+                    <!-- English Definition -->
+                </div>
+                <div id="englishExample" class="text-sm sm:text-base font-semibold text-sky-700 italic">
+                    <!-- Example Sentence -->
+                </div>
+
+                <!-- Audio Pronunciation Buttons -->
+                <div class="flex justify-center gap-3 mt-4">
+                    <button id="speakerBtn" onclick="speakCurrentWord(0.85)" class="inline-flex items-center gap-2 bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 text-white font-bold px-4 sm:px-5 py-2 rounded-full shadow-md hover:shadow-lg transform hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer text-sm sm:text-base">
+                        <i class="fa-solid fa-volume-high bounce-gentle"></i>
+                        <span>Listen (Normal)</span>
+                    </button>
+                    <button onclick="speakCurrentWord(0.55)" class="inline-flex items-center gap-2 bg-amber-400 hover:bg-amber-500 text-amber-950 font-bold px-4 sm:px-5 py-2 rounded-full shadow-md hover:shadow-lg transform hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer text-sm sm:text-base">
+                        <i class="fa-solid fa-turtle"></i>
+                        <span>Listen (Slow)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Hint Display Box -->
+            <div id="hintText" class="hidden mb-4 text-amber-700 bg-amber-50 border border-amber-300 px-4 py-2 rounded-xl text-sm font-semibold text-center w-full">
+            </div>
+
+            <!-- Answer Letters Area -->
+            <div class="w-full mb-6">
+                <div class="text-xs sm:text-sm font-bold text-gray-400 uppercase text-center mb-2">Spell the Word Below</div>
+                <div id="answerArea" class="flex flex-wrap justify-center items-center gap-2 sm:gap-3 min-h-[60px] p-4 bg-gray-50/80 rounded-2xl border-2 border-dashed border-sky-300">
+                    <!-- Dynamic letter slots placed here -->
+                </div>
+            </div>
+
+            <!-- Scrambled Letter Tiles Area -->
+            <div class="w-full mb-8">
+                <div class="text-xs sm:text-sm font-bold text-gray-400 uppercase text-center mb-2">Tap Letter Tiles to Spell</div>
+                <div id="scrambleArea" class="flex flex-wrap justify-center items-center gap-2 sm:gap-3 p-4 bg-sky-50/50 rounded-2xl border border-sky-100 min-h-[80px]">
+                    <!-- Dynamic scrambled letter tiles placed here -->
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-wrap justify-center gap-3 sm:gap-4 w-full">
+                <button onclick="clearAnswer()" class="bg-amber-500 hover:bg-amber-600 text-white font-bold px-4 sm:px-6 py-2.5 rounded-xl shadow-md active:translate-y-0.5 transition flex items-center gap-2 text-sm sm:text-base cursor-pointer">
+                    <i class="fa-solid fa-rotate-left"></i> Reset
+                </button>
+                <button onclick="showHint()" class="bg-purple-500 hover:bg-purple-600 text-white font-bold px-4 sm:px-6 py-2.5 rounded-xl shadow-md active:translate-y-0.5 transition flex items-center gap-2 text-sm sm:text-base cursor-pointer">
+                    <i class="fa-solid fa-lightbulb"></i> Clue
+                </button>
+                <button id="nextBtn" onclick="nextQuestion()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-5 sm:px-8 py-2.5 rounded-xl shadow-md active:translate-y-0.5 transition flex items-center gap-2 text-sm sm:text-base cursor-pointer">
+                    <span>Next</span> <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+
+            <!-- Feedback Message -->
+            <div id="feedbackMsg" class="h-8 mt-4 font-display text-lg font-bold text-center"></div>
+        </div>
+
+        <div id="summaryScreen" class="hidden flex flex-col items-center text-center py-6">
+            <div class="text-5xl sm:text-6xl mb-2">🏆</div>
+            <h2 class="text-3xl sm:text-4xl font-extrabold text-sky-900 font-display mb-2">Awesome Work!</h2>
+            <p class="text-gray-600 mb-6 font-semibold">You completed the P6 English Vocabulary Spelling Challenge!</p>
+
+            <!-- Star Rating Display -->
+            <div id="starContainer" class="flex justify-center gap-3 text-4xl sm:text-5xl text-amber-400 mb-6">
+                <!-- Stars rendered via JS -->
+            </div>
+
+            <!-- Score Summary Card -->
+            <div class="bg-sky-50 border-2 border-sky-200 rounded-2xl p-6 w-full max-w-md mb-6">
+                <div class="text-gray-600 font-bold mb-1">Total Score</div>
+                <div id="finalScore" class="text-4xl font-extrabold text-sky-600 font-display mb-4">0 / 120</div>
+                <div class="h-0.5 bg-sky-200 w-full mb-4"></div>
+                <div id="masteryRate" class="text-sm font-bold text-emerald-600">
+                    Mastered 12 out of 12 words!
+                </div>
+            </div>
+
+            <!-- Mastered Word List Box -->
+            <div class="w-full text-left bg-gray-50 border border-gray-200 rounded-2xl p-4 sm:p-6 mb-6 max-h-60 overflow-y-auto">
+                <h3 class="font-bold text-gray-700 mb-3 text-center border-b pb-2">Vocabulary Summary</h3>
+                <ul id="wordReviewList" class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                    <!-- Word list items rendered dynamically -->
+                </ul>
+            </div>
+
+            <button onclick="restartGame()" class="bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 text-white font-display font-bold text-xl px-8 py-3 rounded-2xl shadow-xl transform hover:-translate-y-0.5 active:translate-y-0 transition cursor-pointer">
+                <i class="fa-solid fa-play mr-2"></i> Play Again
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        // Single Words List with English Definitions and Sentences
+        const vocabList = [
+            { word: "tickets", def: "Paper or digital passes used to enter an event or raffle.", example: "We bought raffle _____ to raise money for charity." },
+            { word: "flags", def: "Pieces of cloth or stickers used on Flag Day to raise money.", example: "Volunteers sell _____ on the street to help children." },
+            { word: "volunteer", def: "A person who offers to do work without being paid.", example: "Mary is a _____ at the local animal shelter." },
+            { word: "voluntary", def: "Done willingly without force or payment.", example: "They do _____ work every Saturday morning." },
+            { word: "donate", def: "To give money, food, or items to help people in need.", example: "We can _____ old clothes and toys to poor families." },
+            { word: "adopt", def: "To take a homeless pet into your home as part of your family.", example: "If you want a dog, you should _____ one from a shelter." },
+            { word: "walkathon", def: "A organized event where people walk to raise money.", example: "Our school will hold a _____ to help the hospital." },
+            { word: "fair", def: "An event with games and stalls to collect funds for a good cause.", example: "We raised thousands of dollars at the fund-raising _____." },
+            { word: "inspire", def: "To give someone enthusiasm and motivation to do something great.", example: "Kind people _____ us to do good deeds every day." },
+            { word: "encourage", def: "To give support, confidence, or hope to someone.", example: "Teachers always _____ students to try their best." },
+            { word: "kindhearted", def: "Having or showing a friendly, generous, and warm nature.", example: "The _____ boy helped the old woman cross the street." },
+            { word: "support", def: "To help or encourage someone through difficult times.", example: "We should always _____ our classmates when they need help." }
+        ];
+
+        let currentIndex = 0;
+        let score = 0;
+        let selectedTiles = [];
+        let scrambledLetters = [];
+        let targetLetters = [];
+        let isCorrect = false;
+
+        // Initialize Audio Synthesizer
+        const synth = window.speechSynthesis;
+
+        // Shuffle helper array
+        function shuffleArray(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        // Speech Synthesis Pronunciation
+        function speakCurrentWord(rate = 0.85) {
+            if (!synth) return;
+            synth.cancel(); // Stop any pending speech
+            const currentItem = vocabList[currentIndex];
+            const utterance = new SpeechSynthesisUtterance(currentItem.word);
+            utterance.lang = 'en-US';
+            utterance.rate = rate;
+            utterance.pitch = 1.0;
+            synth.speak(utterance);
+        }
+
+        // Load Question
+        function loadQuestion() {
+            isCorrect = false;
+            selectedTiles = [];
+            document.getElementById("hintText").classList.add("hidden");
+            document.getElementById("feedbackMsg").innerText = "";
+
+            const item = vocabList[currentIndex];
+            document.getElementById("englishDef").innerText = item.def;
+            document.getElementById("englishExample").innerText = `"${item.example}"`;
+            document.getElementById("questionProgress").innerText = `Word ${currentIndex + 1} / ${vocabList.length}`;
+
+            // Automatic vocal pronunciation
+            setTimeout(() => {
+                speakCurrentWord(0.85);
+            }, 300);
+
+            // Split into individual letters
+            targetLetters = item.word.split("");
+
+            // Generate scrambled letter tiles
+            do {
+                scrambledLetters = shuffleArray(targetLetters);
+            } while (scrambledLetters.join("") === targetLetters.join("") && targetLetters.length > 1);
+
+            renderBoard();
+        }
+
+        function renderBoard() {
+            const answerArea = document.getElementById("answerArea");
+            const scrambleArea = document.getElementById("scrambleArea");
+
+            answerArea.innerHTML = "";
+            scrambleArea.innerHTML = "";
+
+            // Render Answer Letter Slots
+            targetLetters.forEach((letter, idx) => {
+                const slot = document.createElement("div");
+                const isSelected = idx < selectedTiles.length;
+                const letterVal = isSelected ? selectedTiles[idx].val : "";
+
+                slot.className = `blank-slot flex items-center justify-center font-display font-bold text-lg sm:text-2xl rounded-xl transition-all w-9 h-9 sm:w-12 sm:h-12 ${
+                    isSelected 
+                        ? 'bg-sky-500 text-white shadow-md border-2 border-sky-600 pop-in' 
+                        : 'bg-white border-2 border-dashed border-sky-300 text-sky-800'
+                }`;
+
+                slot.innerText = letterVal.toUpperCase();
+                answerArea.appendChild(slot);
+            });
+
+            // Render Scrambled Letter Tiles
+            scrambledLetters.forEach((letter, idx) => {
+                const isUsed = selectedTiles.some(tile => tile.id === idx);
+                
+                const btn = document.createElement("button");
+                btn.className = `tile-btn font-display font-bold text-lg sm:text-2xl rounded-xl border-2 border-blue-600 w-9 h-9 sm:w-12 sm:h-12 ${
+                    isUsed 
+                        ? 'opacity-20 pointer-events-none bg-gray-200 border-gray-300 shadow-none' 
+                        : 'bg-blue-500 hover:bg-blue-400 text-white cursor-pointer'
+                }`;
+
+                btn.innerText = letter.toUpperCase();
+                btn.onclick = () => selectTile(idx, letter);
+                scrambleArea.appendChild(btn);
+            });
+        }
+
+        // Handle Tile Selection
+        function selectTile(id, val) {
+            if (selectedTiles.length >= targetLetters.length || isCorrect) return;
+
+            selectedTiles.push({ id, val });
+            renderBoard();
+
+            // Auto-check when all slots filled
+            if (selectedTiles.length === targetLetters.length) {
+                checkAnswer();
+            }
+        }
+
+        function checkAnswer() {
+            const item = vocabList[currentIndex];
+            const userAttempt = selectedTiles.map(t => t.val).join('');
+            const feedbackMsg = document.getElementById("feedbackMsg");
+
+            if (userAttempt.toLowerCase() === item.word.toLowerCase()) {
+                isCorrect = true;
+                score += 10;
+                document.getElementById("score").innerText = score;
+
+                feedbackMsg.className = "h-8 mt-4 font-display text-xl font-bold text-center text-emerald-600 pop-in";
+                feedbackMsg.innerText = "🎉 Excellent! Correct Spelling!";
+
+                // Trigger Confetti effect
+                confetti({
+                    particleCount: 50,
+                    spread: 60,
+                    origin: { y: 0.7 }
+                });
+
+                // Play audio again
+                speakCurrentWord(0.85);
+
+            } else {
+                feedbackMsg.className = "h-8 mt-4 font-display text-xl font-bold text-center text-rose-500 shake";
+                feedbackMsg.innerText = "❌ Try again! Tap Reset to retry.";
+            }
+        }
+
+        // Clear Answer Slots
+        function clearAnswer() {
+            if (isCorrect) return;
+            selectedTiles = [];
+            document.getElementById("feedbackMsg").innerText = "";
+            renderBoard();
+        }
+
+        // Show Hint
+        function showHint() {
+            const item = vocabList[currentIndex];
+            const hintBox = document.getElementById("hintText");
+            
+            const hintString = `Starts with "${item.word.substring(0, 2).toUpperCase()}..." and ends with "...${item.word.slice(-1).toUpperCase()}" (${item.word.length} letters)`;
+
+            hintBox.innerText = `💡 Clue: ${hintString}`;
+            hintBox.classList.remove("hidden");
+        }
+
+        // Next Question
+        function nextQuestion() {
+            if (currentIndex < vocabList.length - 1) {
+                currentIndex++;
+                loadQuestion();
+            } else {
+                showSummaryScreen();
+            }
+        }
+
+        function showSummaryScreen() {
+            document.getElementById("gameScreen").classList.add("hidden");
+            document.getElementById("summaryScreen").classList.remove("hidden");
+
+            document.getElementById("finalScore").innerText = `${score} / ${vocabList.length * 10}`;
+            document.getElementById("masteryRate").innerText = `Mastered ${score / 10} out of ${vocabList.length} words!`;
+
+            // Render Stars
+            const starContainer = document.getElementById("starContainer");
+            starContainer.innerHTML = "";
+            const starsEarned = Math.round((score / (vocabList.length * 10)) * 3);
+            
+            for (let i = 1; i <= 3; i++) {
+                const star = document.createElement("i");
+                star.className = i <= starsEarned ? "fa-solid fa-star pop-in" : "fa-regular fa-star text-gray-300";
+                starContainer.appendChild(star);
+            }
+
+            // Render Vocabulary Summary List
+            const wordReviewList = document.getElementById("wordReviewList");
+            wordReviewList.innerHTML = "";
+            vocabList.forEach(item => {
+                const li = document.createElement("li");
+                li.className = "flex items-center gap-2 p-2 bg-white rounded-lg border border-gray-100 shadow-sm";
+                li.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-500"></i> <span class="font-bold text-gray-800">${item.word}</span>`;
+                wordReviewList.appendChild(li);
+            });
+
+            // Trigger Victory Confetti
+            confetti({
+                particleCount: 120,
+                spread: 100,
+                origin: { y: 0.5 }
+            });
+        }
+
+        // Restart Game
+        function restartGame() {
+            currentIndex = 0;
+            score = 0;
+            document.getElementById("score").innerText = "0";
+            document.getElementById("summaryScreen").classList.add("hidden");
+            document.getElementById("gameScreen").classList.remove("hidden");
+            loadQuestion();
+        }
+
+        // Initialize on page load
+        window.onload = function() {
+            loadQuestion();
+        };
+    </script>
+</body>
+</html>
